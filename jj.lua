@@ -1,8 +1,8 @@
--- Blade Ball 完全版自动化脚本
--- 作者：Celestia开发者
--- 更新日期：2024年
+-- Blade Ball 完全版自動化スクリプト
+-- 開発者：Celestia
+-- 更新日：2024年
 
--- [[ 第一部分：服务初始化 ]]
+-- [[ 第一部：サービス初期化 ]]
 local function safe_cloneref(serviceName)
     local service = game:GetService(serviceName)
     if cloneref then
@@ -29,11 +29,11 @@ local GuiService = safe_cloneref('GuiService')
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [[ 第二部分：全局变量和配置 ]]
+-- [[ 第二部：グローバル変数と設定 ]]
 local getgenv = getgenv or function() return _G end
 local _G = _G or getfenv()
 
--- 确保全局设置表存在
+-- グローバル設定テーブルの存在確認
 if not _G.CelestiaSettings then
     _G.CelestiaSettings = {
         AutoParry = {
@@ -66,7 +66,7 @@ if not _G.CelestiaSettings then
             Fly = { Enabled = false, Speed = 50 },
             Cosmetics = { Enabled = false },
             FOV = { Enabled = false, Value = 70 },
-            HitSounds = { Enabled = false, Sound = "Medal", Volume = 6 }
+            HitSounds = { Enabled = false, Sound = "メダル", Volume = 6 }
         },
         Misc = {
             CooldownProtection = false,
@@ -78,7 +78,7 @@ end
 
 local Settings = _G.CelestiaSettings
 
--- 核心变量
+-- コア変数
 local Parry_Key = nil
 local HashOne, HashTwo, HashThree
 local PropertyChangeOrder = {}
@@ -96,14 +96,14 @@ local Parried = false
 local Training_Parried = false
 local TriggerbotParried = false
 
--- [[ 第三部分：LPH 模拟函数 ]]
+-- [[ 第三部：LPH シミュレーション関数 ]]
 if not LPH_OBFUSCATED then
     _G.LPH_JIT = function(f) return f end
     _G.LPH_JIT_MAX = function(f) return f end
     _G.LPH_NO_VIRTUALIZE = function(f) return f end
 end
 
--- [[ 第四部分：哈希值提取 ]]
+-- [[ 第四部：ハッシュ値抽出 ]]
 local function ExtractHashes()
     for _, value in next, getgc() do
         if type(value) == "function" and islclosure(value) then
@@ -123,10 +123,10 @@ local function ExtractHashes()
     end
 end
 
--- 执行哈希提取
+-- ハッシュ抽出実行
 ExtractHashes()
 
--- [[ 第五部分：远程事件设置 ]]
+-- [[ 第五部：リモートイベント設定 ]]
 local function SetupRemotes()
     for _, obj in next, game:GetDescendants() do
         if obj:IsA("RemoteEvent") and string.find(obj.Name, "\n") then
@@ -136,7 +136,7 @@ local function SetupRemotes()
         end
     end
     
-    -- 等待所有远程事件被发现
+    -- すべてのリモートイベントが発見されるまで待機
     repeat
         task.wait()
     until #PropertyChangeOrder == 3
@@ -146,7 +146,7 @@ end
 
 local ShouldPlayerJump, MainRemote, GetOpponentPosition = SetupRemotes()
 
--- [[ 第六部分：格挡键检测 ]]
+-- [[ 第六部：パリィキー検出 ]]
 local function FindParryKey()
     local hotbar = Player.PlayerGui:FindFirstChild("Hotbar")
     if not hotbar then return nil end
@@ -172,10 +172,10 @@ end
 
 Parry_Key = FindParryKey()
 
--- [[ 第七部分：自动格挡核心模块 ]]
+-- [[ 第七部：自動パリィコアモジュール ]]
 local Auto_Parry = {}
 
--- 基础功能
+-- 基本機能
 function Auto_Parry.Get_Ball()
     local ballsFolder = workspace:FindFirstChild("Balls")
     if not ballsFolder then return nil end
@@ -232,7 +232,7 @@ function Auto_Parry.Closest_Player()
     return foundEntity
 end
 
--- 曲线检测
+-- カーブ検知
 function Auto_Parry.Is_Curved()
     local ball = Auto_Parry.Get_Ball()
     if not ball then return false end
@@ -255,13 +255,13 @@ function Auto_Parry.Is_Curved()
     return dot < dotThreshold
 end
 
--- 格挡数据生成
+-- パリィデータ生成
 function Auto_Parry.Parry_Data(parryType)
     local camera = workspace.CurrentCamera
     local events = {}
     local mouseLocation = {camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2}
     
-    -- 获取屏幕上的玩家位置
+    -- 画面上のプレイヤー位置取得
     local aliveFolder = workspace:FindFirstChild("Alive")
     if aliveFolder then
         for _, playerChar in pairs(aliveFolder:GetChildren()) do
@@ -290,23 +290,23 @@ function Auto_Parry.Parry_Data(parryType)
     return {0, camera.CFrame, events, mouseLocation}
 end
 
--- 格挡执行
+-- パリィ実行
 function Auto_Parry.Parry(parryType)
     if not Parry_Key or not HashOne or not HashTwo or not HashThree then
-        warn("格挡系统未完全初始化")
+        warn("パリィシステムが完全に初期化されていません")
         return
     end
     
     local parryData = Auto_Parry.Parry_Data(parryType)
     
-    -- 发送格挡请求
+    -- パリィリクエスト送信
     ShouldPlayerJump:FireServer(HashOne, Parry_Key, unpack(parryData))
     MainRemote:FireServer(HashTwo, Parry_Key, unpack(parryData))
     GetOpponentPosition:FireServer(HashThree, Parry_Key, unpack(parryData))
     
     Parries = Parries + 1
     
-    -- 重置格挡计数
+    -- パリィカウントリセット
     task.delay(0.5, function()
         if Parries > 0 then
             Parries = Parries - 1
@@ -314,8 +314,8 @@ function Auto_Parry.Parry(parryType)
     end)
 end
 
--- [[ 第八部分：特殊检测系统 ]]
--- Phantom V2 检测
+-- [[ 第八部：特殊検知システム ]]
+-- ファントム V2 検知
 local function SetupPhantomDetection()
     local runtime = workspace:FindFirstChild("Runtime")
     if not runtime then return end
@@ -326,7 +326,7 @@ local function SetupPhantomDetection()
             if weld and Player.Character and weld.Part1 == Player.Character.HumanoidRootPart then
                 Phantom = true
                 
-                -- 自动移动玩家
+                -- プレイヤー自動移動
                 local ball = Auto_Parry.Get_Ball()
                 if ball then
                     ContextActionService:BindAction('BlockPlayerMovement', function()
@@ -341,7 +341,7 @@ local function SetupPhantomDetection()
     end)
 end
 
--- Slash of Fury 检测
+-- スラッシュ・オブ・フューリー検知
 local function SetupSlashOfFuryDetection()
     local balls = workspace:FindFirstChild("Balls")
     if not balls then return end
@@ -364,7 +364,7 @@ local function SetupSlashOfFuryDetection()
     end)
 end
 
--- 无限球检测
+-- インフィニティボール検知
 local function SetupInfinityDetection()
     local infinityRemote = ReplicatedStorage:FindFirstChild("Remotes")
     if infinityRemote then
@@ -377,42 +377,42 @@ local function SetupInfinityDetection()
     end
 end
 
--- [[ 第九部分：UI 界面 (Airflow) ]]
+-- [[ 第九部：UI インターフェース (Airflow) ]]
 local function CreateUI()
-    -- 加载 Airflow UI 库
+    -- Airflow UIライブラリ読み込み
     local success, Airflow = pcall(function()
         return loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/4lpaca-pin/Airflow/refs/heads/main/src/source.luau"))()
     end)
     
     if not success then
-        warn("无法加载 Airflow UI 库")
+        warn("Airflow UIライブラリを読み込めません")
         return nil
     end
     
     local Window = Airflow:Init({
-        Name = "Celestia - Blade Ball",
-        Keybind = "LeftControl",
+        Name = "セレスティア - ブレイドボール",
+        Keybind = "左Ctrl",
         Logo = "rbxassetid://94220348785476",
     })
     
-    -- 创建标签页
-    local BlatantTab = Window:DrawTab({ Name = "自动格挡", Icon = "sword" })
-    local PlayerTab = Window:DrawTab({ Name = "玩家", Icon = "user" })
-    local MiscTab = Window:DrawTab({ Name = "杂项", Icon = "settings" })
+    -- タブ作成
+    local BlatantTab = Window:DrawTab({ Name = "自動パリィ", Icon = "shield" })
+    local PlayerTab = Window:DrawTab({ Name = "プレイヤー", Icon = "user" })
+    local MiscTab = Window:DrawTab({ Name = "その他", Icon = "settings" })
     
-    -- [[ 自动格挡设置 ]]
+    -- [[ 自動パリィ設定 ]]
     local AutoParrySection = BlatantTab:AddSection({
-        Name = "自动格挡",
+        Name = "自動パリィ",
         Position = "left",
     })
     
     AutoParrySection:AddToggle({
-        Name = "启用自动格挡",
+        Name = "自動パリィ有効",
         Callback = function(value)
             Settings.AutoParry.Enabled = value
             
             if value then
-                -- 创建自动格挡循环
+                -- 自動パリィループ作成
                 if Connections_Manager['AutoParry'] then
                     Connections_Manager['AutoParry']:Disconnect()
                 end
@@ -429,16 +429,16 @@ local function CreateUI()
                     local target = ball:GetAttribute('target')
                     if target ~= tostring(Player) then return end
                     
-                    -- 计算距离和速度
+                    -- 距離と速度計算
                     local distance = (Player.Character.PrimaryPart.Position - ball.Position).Magnitude
                     local velocity = zoomies.VectorVelocity
                     local speed = velocity.Magnitude
                     
-                    -- 计算延迟
+                    -- 遅延計算
                     local ping = game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue() / 10
                     local pingThreshold = math.clamp(ping / 10, 5, 17)
                     
-                    -- 计算格挡精度
+                    -- パリィ精度計算
                     local cappedSpeedDiff = math.min(math.max(speed - 9.5, 0), 650)
                     local speedDivisorBase = 2.4 + cappedSpeedDiff * 0.002
                     
@@ -450,15 +450,15 @@ local function CreateUI()
                     local speedDivisor = speedDivisorBase * effectiveMultiplier
                     local parryAccuracy = pingThreshold + math.max(speed / speedDivisor, 9.5)
                     
-                    -- 检查是否曲线球
+                    -- カーブボールチェック
                     local isCurved = Auto_Parry.Is_Curved()
                     
-                    -- 无限球检测
+                    -- インフィニティボール検知
                     if Settings.AutoParry.InfinityDetection and Infinity then
                         return
                     end
                     
-                    -- 执行格挡
+                    -- パリィ実行
                     if distance <= parryAccuracy and not isCurved then
                         if Settings.AutoParry.Keypress then
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
@@ -479,7 +479,7 @@ local function CreateUI()
     })
     
     AutoParrySection:AddSlider({
-        Name = "格挡精度",
+        Name = "パリィ精度",
         Min = 1,
         Max = 100,
         Default = 100,
@@ -490,51 +490,62 @@ local function CreateUI()
     })
     
     AutoParrySection:AddDropdown({
-        Name = "格挡方向",
-        Values = {"Camera", "Backwards", "Straight", "Random", "High", "Left", "Right", "RandomTarget"},
+        Name = "パリィ方向",
+        Values = {"カメラ", "後方", "直線", "ランダム", "上方", "左", "右", "ランダムターゲット"},
         Multi = false,
-        Default = "Camera",
+        Default = "カメラ",
         Callback = function(value)
-            Selected_Parry_Type = value
+            -- 英語の値に変換
+            local typeMap = {
+                ["カメラ"] = "Camera",
+                ["後方"] = "Backwards",
+                ["直線"] = "Straight",
+                ["ランダム"] = "Random",
+                ["上方"] = "High",
+                ["左"] = "Left",
+                ["右"] = "Right",
+                ["ランダムターゲット"] = "RandomTarget"
+            }
+            Selected_Parry_Type = typeMap[value] or "Camera"
         end
     })
     
     AutoParrySection:AddToggle({
-        Name = "随机精度",
+        Name = "ランダム精度",
         Callback = function(value)
             Settings.AutoParry.RandomAccuracy = value
         end
     })
     
     AutoParrySection:AddToggle({
-        Name = "按键模拟",
+        Name = "キー押下シミュレーション",
         Callback = function(value)
             Settings.AutoParry.Keypress = value
         end
     })
     
     AutoParrySection:AddToggle({
-        Name = "无限球检测",
+        Name = "インフィニティボール検知",
         Callback = function(value)
             Settings.AutoParry.InfinityDetection = value
         end
     })
     
     AutoParrySection:AddToggle({
-        Name = "Phantom检测",
+        Name = "ファントム検知",
         Callback = function(value)
             Settings.AutoParry.PhantomDetection = value
         end
     })
     
-    -- [[ 连发格挡 ]]
+    -- [[ 連発パリィ ]]
     local SpamParrySection = BlatantTab:AddSection({
-        Name = "连发格挡",
+        Name = "連発パリィ",
         Position = "right",
     })
     
     SpamParrySection:AddToggle({
-        Name = "启用连发格挡",
+        Name = "連発パリィ有効",
         Callback = function(value)
             Settings.SpamParry.Enabled = value
             
@@ -574,7 +585,7 @@ local function CreateUI()
     })
     
     SpamParrySection:AddSlider({
-        Name = "格挡阈值",
+        Name = "パリィ閾値",
         Min = 1,
         Max = 3,
         Default = 2.5,
@@ -585,20 +596,20 @@ local function CreateUI()
     })
     
     SpamParrySection:AddToggle({
-        Name = "按键模拟",
+        Name = "キー押下シミュレーション",
         Callback = function(value)
             Settings.SpamParry.Keypress = value
         end
     })
     
-    -- [[ 触发式格挡 ]]
+    -- [[ トリガーパリィ ]]
     local TriggerbotSection = BlatantTab:AddSection({
-        Name = "触发格挡",
+        Name = "トリガーパリィ",
         Position = "left",
     })
     
     TriggerbotSection:AddToggle({
-        Name = "启用触发格挡",
+        Name = "トリガーパリィ有効",
         Callback = function(value)
             Settings.Triggerbot.Enabled = value
             
@@ -638,27 +649,27 @@ local function CreateUI()
     })
     
     TriggerbotSection:AddToggle({
-        Name = "无限球检测",
+        Name = "インフィニティボール検知",
         Callback = function(value)
             Settings.Triggerbot.InfinityDetection = value
         end
     })
     
     TriggerbotSection:AddToggle({
-        Name = "按键模拟",
+        Name = "キー押下シミュレーション",
         Callback = function(value)
             Settings.Triggerbot.Keypress = value
         end
     })
     
-    -- [[ 大厅自动格挡 ]]
+    -- [[ ロビー自動パリィ ]]
     local LobbyAPSection = BlatantTab:AddSection({
-        Name = "大厅自动格挡",
+        Name = "ロビー自動パリィ",
         Position = "right",
     })
     
     LobbyAPSection:AddToggle({
-        Name = "启用大厅自动格挡",
+        Name = "ロビー自動パリィ有効",
         Callback = function(value)
             Settings.LobbyAP.Enabled = value
             
@@ -714,7 +725,7 @@ local function CreateUI()
     })
     
     LobbyAPSection:AddSlider({
-        Name = "格挡精度",
+        Name = "パリィ精度",
         Min = 1,
         Max = 100,
         Default = 100,
@@ -725,28 +736,28 @@ local function CreateUI()
     })
     
     LobbyAPSection:AddToggle({
-        Name = "随机精度",
+        Name = "ランダム精度",
         Callback = function(value)
             Settings.LobbyAP.RandomAccuracy = value
         end
     })
     
     LobbyAPSection:AddToggle({
-        Name = "按键模拟",
+        Name = "キー押下シミュレーション",
         Callback = function(value)
             Settings.LobbyAP.Keypress = value
         end
     })
     
-    -- [[ 玩家设置 ]]
-    -- 移动速度调整
+    -- [[ プレイヤー設定 ]]
+    -- 移動速度調整
     local StrafeSection = PlayerTab:AddSection({
-        Name = "移动设置",
+        Name = "移動設定",
         Position = "left",
     })
     
     StrafeSection:AddToggle({
-        Name = "启用移动调整",
+        Name = "移動調整有効",
         Callback = function(value)
             Settings.Player.Strafe.Enabled = value
             
@@ -776,7 +787,7 @@ local function CreateUI()
     })
     
     StrafeSection:AddSlider({
-        Name = "移动速度",
+        Name = "移動速度",
         Min = 36,
         Max = 200,
         Default = 36,
@@ -785,14 +796,14 @@ local function CreateUI()
         end
     })
     
-    -- 旋转机器人
+    -- スピンボット
     local SpinbotSection = PlayerTab:AddSection({
-        Name = "旋转设置",
+        Name = "スピン設定",
         Position = "right",
     })
     
     SpinbotSection:AddToggle({
-        Name = "启用旋转",
+        Name = "スピンボット有効",
         Callback = function(value)
             Settings.Player.Spinbot.Enabled = value
             
@@ -817,7 +828,7 @@ local function CreateUI()
     })
     
     SpinbotSection:AddSlider({
-        Name = "旋转速度",
+        Name = "スピン速度",
         Min = 1,
         Max = 100,
         Default = 1,
@@ -826,19 +837,19 @@ local function CreateUI()
         end
     })
     
-    -- 飞行模式
+    -- フライモード
     local FlySection = PlayerTab:AddSection({
-        Name = "飞行设置",
+        Name = "飛行設定",
         Position = "left",
     })
     
     FlySection:AddToggle({
-        Name = "启用飞行",
+        Name = "飛行有効",
         Callback = function(value)
             Settings.Player.Fly.Enabled = value
             
             if value then
-                -- 飞行模式实现
+                -- フライモード実装
                 local character = Player.Character
                 if not character then return end
                 
@@ -846,7 +857,7 @@ local function CreateUI()
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
                 if not humanoid or not rootPart then return end
                 
-                -- 创建飞行控制器
+                -- フライコントローラー作成
                 local bodyGyro = Instance.new("BodyGyro")
                 bodyGyro.P = 90000
                 bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -919,7 +930,7 @@ local function CreateUI()
     })
     
     FlySection:AddSlider({
-        Name = "飞行速度",
+        Name = "飛行速度",
         Min = 10,
         Max = 100,
         Default = 50,
@@ -928,14 +939,14 @@ local function CreateUI()
         end
     })
     
-    -- 视角设置
+    -- 視野設定
     local FOVSection = PlayerTab:AddSection({
-        Name = "视角设置",
+        Name = "視野設定",
         Position = "right",
     })
     
     FOVSection:AddToggle({
-        Name = "启用自定义视角",
+        Name = "カスタム視野有効",
         Callback = function(value)
             Settings.Player.FOV.Enabled = value
             
@@ -965,7 +976,7 @@ local function CreateUI()
     })
     
     FOVSection:AddSlider({
-        Name = "视角大小",
+        Name = "視野サイズ",
         Min = 50,
         Max = 150,
         Default = 70,
@@ -974,21 +985,21 @@ local function CreateUI()
         end
     })
     
-    -- 命中音效
+    -- ヒットサウンド
     local HitSoundsSection = PlayerTab:AddSection({
-        Name = "命中音效",
+        Name = "ヒット音",
         Position = "left",
     })
     
     HitSoundsSection:AddToggle({
-        Name = "启用命中音效",
+        Name = "ヒット音有効",
         Callback = function(value)
             Settings.Player.HitSounds.Enabled = value
         end
     })
     
     HitSoundsSection:AddSlider({
-        Name = "音效音量",
+        Name = "音量",
         Min = 0,
         Max = 10,
         Default = 6,
@@ -997,44 +1008,44 @@ local function CreateUI()
         end
     })
     
-    local soundOptions = {"Medal", "Fatality", "Skeet", "Switches", "Rust Headshot", "Neverlose Sound", "Bubble", "Laser", "Steve", "Call of Duty", "Bat", "TF2 Critical", "Saber", "Bameware"}
+    local soundOptions = {"メダル", "ファタリティ", "スキート", "スイッチ", "ラストヘッドショット", "ネバーローズ", "バブル", "レーザー", "スティーブ", "コール・オブ・デューティ", "バット", "TF2クリティカル", "セイバー", "ベームウェア"}
     local soundIds = {
-        Medal = "rbxassetid://6607336718",
-        Fatality = "rbxassetid://6607113255",
-        Skeet = "rbxassetid://6607204501",
-        Switches = "rbxassetid://6607173363",
-        ["Rust Headshot"] = "rbxassetid://138750331387064",
-        ["Neverlose Sound"] = "rbxassetid://110168723447153",
-        Bubble = "rbxassetid://6534947588",
-        Laser = "rbxassetid://7837461331",
-        Steve = "rbxassetid://4965083997",
-        ["Call of Duty"] = "rbxassetid://5952120301",
-        Bat = "rbxassetid://3333907347",
-        ["TF2 Critical"] = "rbxassetid://296102734",
-        Saber = "rbxassetid://8415678813",
-        Bameware = "rbxassetid://3124331820"
+        ["メダル"] = "rbxassetid://6607336718",
+        ["ファタリティ"] = "rbxassetid://6607113255",
+        ["スキート"] = "rbxassetid://6607204501",
+        ["スイッチ"] = "rbxassetid://6607173363",
+        ["ラストヘッドショット"] = "rbxassetid://138750331387064",
+        ["ネバーローズ"] = "rbxassetid://110168723447153",
+        ["バブル"] = "rbxassetid://6534947588",
+        ["レーザー"] = "rbxassetid://7837461331",
+        ["スティーブ"] = "rbxassetid://4965083997",
+        ["コール・オブ・デューティ"] = "rbxassetid://5952120301",
+        ["バット"] = "rbxassetid://3333907347",
+        ["TF2クリティカル"] = "rbxassetid://296102734",
+        ["セイバー"] = "rbxassetid://8415678813",
+        ["ベームウェア"] = "rbxassetid://3124331820"
     }
     
     HitSoundsSection:AddDropdown({
-        Name = "音效选择",
+        Name = "ヒット音選択",
         Options = soundOptions,
         Callback = function(value)
             Settings.Player.HitSounds.Sound = value
         end
     })
     
-    -- 设置命中音效
+    -- ヒットサウンド設定
     local hitSoundFolder = Instance.new("Folder")
-    hitSoundFolder.Name = "CelestiaHitSounds"
+    hitSoundFolder.Name = "セレスティアヒット音"
     hitSoundFolder.Parent = workspace
     
     local hitSound = Instance.new("Sound")
-    hitSound.Name = "HitSound"
+    hitSound.Name = "ヒット音"
     hitSound.Volume = Settings.Player.HitSounds.Volume
-    hitSound.SoundId = soundIds[Settings.Player.HitSounds.Sound] or soundIds.Medal
+    hitSound.SoundId = soundIds[Settings.Player.HitSounds.Sound] or soundIds["メダル"]
     hitSound.Parent = hitSoundFolder
     
-    -- 连接格挡成功事件
+    -- パリィ成功イベント接続
     local parrySuccessRemote = ReplicatedStorage:FindFirstChild("Remotes")
     if parrySuccessRemote then
         parrySuccessRemote = parrySuccessRemote:FindFirstChild("ParrySuccess")
@@ -1047,47 +1058,48 @@ local function CreateUI()
         end
     end
     
-    -- [[ 杂项设置 ]]
+    -- [[ その他設定 ]]
     local MiscSection = MiscTab:AddSection({
-        Name = "游戏功能",
+        Name = "ゲーム機能",
         Position = "left",
     })
     
     MiscSection:AddToggle({
-        Name = "冷却保护",
+        Name = "クールダウン保護",
         Callback = function(value)
             Settings.Misc.CooldownProtection = value
         end
     })
     
     MiscSection:AddToggle({
-        Name = "自动能力",
+        Name = "自動アビリティ",
         Callback = function(value)
             Settings.Misc.AutoAbility = value
         end
     })
     
     MiscSection:AddToggle({
-        Name = "Slash of Fury 检测",
+        Name = "スラッシュ・オブ・フューリー検知",
         Callback = function(value)
             Settings.Misc.SlashOfFuryDetection = value
         end
     })
     
-    -- 保存设置按钮
+    -- 設定保存ボタン
     MiscSection:AddButton({
-        Name = "保存设置",
+        Name = "設定を保存",
         Callback = function()
-            writefile("Celestia_Settings.json", game:GetService("HttpService"):JSONEncode(Settings))
-            print("设置已保存")
+            writefile("セレスティア設定.json", game:GetService("HttpService"):JSONEncode(Settings))
+            print("設定を保存しました")
         end
     })
     
+    -- 設定読み込みボタン
     MiscSection:AddButton({
-        Name = "加载设置",
+        Name = "設定を読み込み",
         Callback = function()
-            if isfile("Celestia_Settings.json") then
-                local saved = game:GetService("HttpService"):JSONDecode(readfile("Celestia_Settings.json"))
+            if isfile("セレスティア設定.json") then
+                local saved = game:GetService("HttpService"):JSONDecode(readfile("セレスティア設定.json"))
                 if saved then
                     for category, values in pairs(saved) do
                         if Settings[category] then
@@ -1098,10 +1110,10 @@ local function CreateUI()
                             end
                         end
                     end
-                    print("设置已加载")
+                    print("設定を読み込みました")
                 end
             else
-                print("未找到保存的设置")
+                print("保存された設定が見つかりません")
             end
         end
     })
@@ -1109,38 +1121,38 @@ local function CreateUI()
     return Window
 end
 
--- [[ 第十部分：初始化函数 ]]
+-- [[ 第十部：初期化関数 ]]
 local function InitializeScript()
-    print("=== Celestia Blade Ball 脚本初始化 ===")
+    print("=== セレスティア ブレイドボール スクリプト初期化 ===")
     
-    -- 等待玩家角色加载
+    -- プレイヤーキャラクターの読み込みを待機
     if not Player.Character then
         Player.CharacterAdded:Wait()
     end
     
-    -- 设置特殊检测
+    -- 特殊検知設定
     SetupPhantomDetection()
     SetupSlashOfFuryDetection()
     SetupInfinityDetection()
     
-    -- 创建UI
+    -- UI作成
     local ui = CreateUI()
     
-    -- 设置事件监听
+    -- イベントリスナー設定
     workspace.Balls.ChildRemoved:Connect(function()
         Parries = 0
         Parried = false
         Phantom = false
     end)
     
-    -- 格挡成功事件监听
+    -- パリィ成功イベントリスナー
     local remotes = ReplicatedStorage:FindFirstChild("Remotes")
     if remotes then
         local parrySuccessAll = remotes:FindFirstChild("ParrySuccessAll")
         if parrySuccessAll then
             parrySuccessAll.OnClientEvent:Connect(function(_, rootPart)
                 if rootPart.Parent and rootPart.Parent ~= Player.Character then
-                    -- 处理格挡成功逻辑
+                    -- パリィ成功ロジック処理
                 end
             end)
         end
@@ -1157,16 +1169,16 @@ local function InitializeScript()
         end
     end
     
-    print("脚本初始化完成！")
-    print("按左Ctrl键打开菜单")
+    print("スクリプト初期化完了！")
+    print("左Ctrlキーでメニューを開きます")
 end
 
--- [[ 脚本启动 ]]
+-- [[ スクリプト起動 ]]
 if not _G.CelestiaInitialized then
     _G.CelestiaInitialized = true
     task.spawn(InitializeScript)
 else
-    warn("脚本已经运行中！")
+    warn("スクリプトは既に実行中です！")
 end
 
 return Settings
